@@ -44,7 +44,7 @@ def Interferometer(theta, phi, rphi, q):
 
 def layer(i, q, params):
     sq_r, sq_phi, d_r, d_phi, inter_theta, inter_phi, inter_rphi, kappa = tuple(params)
-    
+
     Interferometer(inter_theta[2*i], inter_phi[2*i], inter_rphi[2*i], q)
     
     for j in range(len(q)):

@@ -110,8 +110,15 @@ def prepare_state(rhos, n_qumodes, cutoff, n_iters, n_layers=20, purity_reg=10, 
     with engine:
         state_preparation_network(q, n_layers, parameters)
 
-    state = engine.run('tf', cutoff_dim=cutoff, eval=False, modes=[0,1])
-    rho_output = tf.reshape(tf.einsum('ijkl->ikjl', state.dm()), (size_hilbert, size_hilbert))
+    state = engine.run('tf', cutoff_dim=cutoff, eval=False, modes=range(n_qumodes))
+
+    if n_qumodes == 1:
+        rho_output = state.dm()
+    if n_qumodes == 2:
+        rho_output = tf.reshape(tf.einsum('ijkl->ikjl', state.dm()), (size_hilbert, size_hilbert))
+    elif n_qumodes > 2:
+        raise ValueError("n_qumodes > 2 not yet supported")
+
     purity_output = tf.real(tf.trace(rho_output @ rho_output))
 
     # ============== Cost and optimizer =============

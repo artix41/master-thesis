@@ -26,9 +26,9 @@ def generate_density_matrices(n_samples, size_hilbert, step_size=0.01):
         - purities: array of dimension (n_samples,)
     """
 
+    print("Generate density matrices...")
     rhos = []
-    list_p = np.arange(0.2, 1, step_size)
-    print(len(list_p))
+    list_p = np.arange(0.33, 1, step_size)
     for i, p in enumerate(list_p): # for each purity
         while len(rhos) < (i+1)*n_samples//len(list_p):
             # print(i, len(rhos), (i+1)*n_samples//len(list_p))

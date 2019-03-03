@@ -1,0 +1,2 @@
+Batch size 16, then 50
+Tracing out

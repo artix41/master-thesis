@@ -1,0 +1,3 @@
+Batch size 1
+Tracing out
+Final result: mse=0.021

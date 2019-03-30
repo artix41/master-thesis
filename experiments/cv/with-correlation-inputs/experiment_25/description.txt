@@ -1,0 +1,22 @@
+     ______                  ______
+----|      |---- rho -------|      |--- <Fock>
+    |  SP  |                |      |
+----|______|----<Fock>      |  PN  |    
+     ______                 |      |
+----|      |---- rho -------|      |--- <Fock>
+    |  SP  |                |      |
+----|______|----<Fock>      |______|
+
+QNN: 10 layers
+CNN: linear network (applied qumodes 0 and 2)
+Input: <NN>, <N>, <N>
+300 training data
+
+Result: 
+- 0.00035 in training
+- 0.00019 in testing
+
+Time to convergence: 1000
+
+Von Neumann entropy: 0.5
+Peter entropy: 0.1

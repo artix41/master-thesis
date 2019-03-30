@@ -1,0 +1,16 @@
+     ______                  ______
+----|      |---- rho -------|      |--- <Fock>
+    |  SP  |                |      |
+----|______|----<Fock>      |  PN  |    
+     ______                 |      |
+----|      |---- rho -------|      |--- <Fock>
+    |  SP  |                |      |
+----|______|----<Fock>      |______|
+
+QNN: 5 layers
+CNN: 2 hidden layers (20 nodes, applied on 2 qumode)
+300 training data
+
+Result: 
+- 0.0012 in training
+- 0.0014 in testing

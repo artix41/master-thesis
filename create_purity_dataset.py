@@ -44,10 +44,6 @@ def generate_density_matrices(n_samples, size_hilbert, step_size=0.01):
     print(rhos.shape)
     return rhos, purities
 
-def create_dataset(n_qumodes, n_samples, cutoff, n_iters_min, n_iters_max):
-    
-    
-    return list_params, rhos, purities
 
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser(
@@ -84,7 +80,7 @@ if __name__ == '__main__':
     plt.hist(purities)
     plt.show()
 
-    list_params = state_prep.prepare_states(rhos, n_qumodes, cutoff, n_iters_min, n_iters_max)
+    list_params = state_prep.prepare_states(rhos, "purity", n_qumodes, cutoff, n_iters_min, n_iters_max)
         
     np.save(os.path.join(data_dir, "list_params.npy"), list_params)
     np.save(os.path.join(data_dir, "rhos.npy"), rhos)

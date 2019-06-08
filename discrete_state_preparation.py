@@ -6,6 +6,7 @@
 
 import os
 import numpy as np
+import scipy as sp
 from matplotlib import pyplot as plt
 
 from pyquil import Program
@@ -15,8 +16,6 @@ from pyquil.api import WavefunctionSimulator
 import qutip
 
 from scipy.optimize import minimize
-
-from create_purity_dataset import generate_density_matrices
 
 wf_sim = WavefunctionSimulator()
 
@@ -72,45 +71,62 @@ def get_rho(params):
 def purity_fct(rho):
     return np.real(np.trace(rho @ rho))
 
+def entropy_fct(rho, eps=1e-8):
+    return - np.real(np.trace(rho @ sp.linalg.logm(rho)))
+
 def purity_mse(rho_output, rho_input):
     return np.mean((purity_fct(rho_output) - purity_fct(rho_input))**2)
+
+def entropy_mse(rho_output, rho_input):
+    return np.mean((entropy_fct(rho_output) - entropy_fct(rho_input))**2)
 
 def trace_distance(rho1, rho2):
     return np.mean(np.real(np.linalg.eigvalsh(rho1 - rho2)**2))
 
 
-def cost(params, rho_input, reg):
+def cost(params, property_mse, rho_input, reg):
     rho_output = get_rho(params)
     
-    return trace_distance(rho_output, rho_input) + reg * purity_mse(rho_output, rho_input)
+    return trace_distance(rho_output, rho_input) + reg * property_mse(rho_output, rho_input)
 
 # ==================== Training ====================
 
-def prepare_states(rhos, n_qumodes=1, cutoff=2, n_iters_min=None, n_iters_max=None, functional_reg=1):
+def prepare_states(rhos, property_name="purity", n_qumodes=1, cutoff=2, n_iters_min=None, n_iters_max=None, property_reg=1):
+    if property_name == "purity":
+        property_fct = purity_fct
+        property_mse = purity_mse
+    elif property_name == "entropy":
+        property_fct = entropy_fct
+        property_mse = entropy_mse
 
     params = np.random.normal(size=15, scale=0.01)
-
     params_list = []
     cost_list = []
-    functional_list = []
+    trace_distance_list = []
+    property_mse_list = []
+    property_list = []
     n_iters = n_iters_max
 
     for i, rho in enumerate(rhos):
         print("\n\n~~~~~~~~~~~~~~~~~~~~~~ Density Matrix {}/{} ~~~~~~~~~~~~~~~~~~~~~~\n".format(i+1, len(rhos)))
-        print("Functional: {:.7f}\n\n".format(purity_fct(rho)))
+        print("Property: {:.7f}\n\n".format(property_fct(rho)))
 
-        result = minimize(lambda params: cost(params, rho, functional_reg), params, method='L-BFGS-B')
+        result = minimize(lambda params: cost(params, property_mse, rho, property_reg), params, method='L-BFGS-B')
         params_predict = result['x']
         curr_cost = result['fun']
-        curr_functional = purity_fct(get_rho(params_predict))
+        curr_rho = get_rho(params_predict)
+        curr_property = property_fct(curr_rho)
+
+        trace_distance_list.append(trace_distance(curr_rho, rho))
+        property_mse_list.append(property_mse(curr_rho, rho))
         
         params_list.append(params_predict)
         cost_list.append(curr_cost)
-        functional_list.append(curr_functional)
+        property_list.append(curr_property)
         
-        print('\nCost: {: .7f} −− Functional: {:.7f}'.format(cost_list[-1], functional_list[-1]))
+        print('\nCost: {: .7f} −− Property: {:.7f}'.format(cost_list[-1], property_list[-1]))
         
         params = params_predict # we change the initialization for the next step
 
-    return params_list
+    return params_list, trace_distance_list, property_mse_list
 

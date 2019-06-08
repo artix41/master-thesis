@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 
 def purity_fct(rho, backend="tf"):
     if backend == "np":
+        print("test")
         return np.real(np.trace(rho @ rho))
     if backend == "tf":
         return tf.real(tf.trace(rho @ rho))
@@ -79,14 +80,19 @@ def trace_distance(rho1, rho2):
     # return tf.reduce_mean(tf.square(tf.real(tf.norm(rho1 - rho2))))
 
 
-def purity_mse(rho1, rho2):
-    return tf.square(purity_fct(rho1) - purity_fct(rho2))
+def purity_mse(rho1, rho2, backend="tf"):
+    return tf.square(purity_fct(rho1, backend) - purity_fct(rho2, backend))
 
-def entropy_mse(rho1, rho2):
-    return tf.square(entropy_fct(rho1) - entropy_fct(rho2))
+def entropy_mse(rho1, rho2, backend="tf"):
+    return tf.square(entropy_fct(rho1, backend) - entropy_fct(rho2, backend))
 
-def prepare_states(rhos, n_qumodes, cutoff, n_iters_min, n_iters_max, n_layers=20, functional_reg=10, lambda_reg=0, lr=2e-3):
-    """Takes a density matrix as input and return the parameters of the quantum circuit to prepare it"""
+def prepare_states(rhos, property_name="purity", n_qumodes=1, cutoff=3, n_iters_min=1000, n_iters_max=3000, n_layers=20, property_reg=10, lambda_reg=0, lr=2e-3):
+    if property_name == "purity":
+        property_fct = purity_fct
+        property_mse = purity_mse
+    elif property_name == "entropy":
+        property_fct = entropy_fct
+        property_mse = entropy_mse
 
     size_system = n_qumodes*2
     size_hilbert = cutoff**n_qumodes
@@ -134,8 +140,7 @@ def prepare_states(rhos, n_qumodes, cutoff, n_iters_min, n_iters_max, n_layers=2
     elif n_qumodes > 2:
         raise ValueError("n_qumodes > 2 not yet supported")
 
-    functional_output = purity_fct(rho_output)
-    # functional_output = entropy_fct(rho_output, "tf")
+    property_output = property_fct(rho_output)
 
     trace_output = tf.real(tf.trace(rho_output))
 
@@ -144,8 +149,7 @@ def prepare_states(rhos, n_qumodes, cutoff, n_iters_min, n_iters_max, n_layers=2
     print("Prepare cost and optimizer...")
     reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
 
-    # cost = trace_distance(rho_output, rho_input) + functional_reg * purity_mse(rho_output, rho_input) + lambda_reg * sum(reg_losses)
-    cost = trace_distance(rho_output, rho_input) + functional_reg * purity_mse(rho_output, rho_input) + lambda_reg * sum(reg_losses)
+    cost = trace_distance(rho_output, rho_input) + property_reg * property_mse(rho_output, rho_input)
 
     optimiser = tf.train.AdamOptimizer(learning_rate=lr_placeholder)
     min_cost = optimiser.minimize(cost)
@@ -160,26 +164,33 @@ def prepare_states(rhos, n_qumodes, cutoff, n_iters_min, n_iters_max, n_layers=2
 
     print("Start training...")
 
-    list_params = []
+    params_list = []
+    trace_distance_list = []
+    property_mse_list = []
     n_iters = n_iters_max
     for i, rho in enumerate(rhos):
         print("\n\n~~~~~~~~~~~~~~~~~~~~~~ Density Matrix {}/{} ~~~~~~~~~~~~~~~~~~~~~~\n".format(i+1, len(rhos)))
-        print("Functional: {:.7f}\n\n".format(purity_fct(rho, "np")))
+        print("Property: {:.7f}\n\n".format(property_fct(rho, "np")))
 
         cost_list = []
-        functional_list = []
+        property_list = []
 
         if i == 1:
             n_iters = n_iters_min        
         for j in range(n_iters):
             _, curr_cost = sess.run([min_cost, cost], feed_dict={rho_input: rho, lr_placeholder: lr})
-            curr_functional, trace_dm = sess.run([functional_output, trace_output])
-            
-            cost_list.append(curr_cost)
-            functional_list.append(curr_functional)
-            print('Step {}/{} −− Cost: {: .7f} −− Functional: {:.7f} −− Trace: {:.7f}'.format(j, n_iters, cost_list[-1], functional_list[-1], trace_dm), end="\r")
-        
-        print('\nCost: {: .7f} −− Functional: {:.7f}'.format(cost_list[-1], functional_list[-1]))
-        list_params.append(sess.run(parameters))
+            curr_property, curr_rho, trace_dm = sess.run([property_output, rho_output, trace_output])
 
-    return list_params
+            cost_list.append(curr_cost)
+            property_list.append(curr_property)
+            print('Step {}/{} −− Cost: {: .7f} −− Property: {:.7f} −− Trace: {:.7f}'.format(j, n_iters, cost_list[-1], property_list[-1], trace_dm), end="\r")
+
+        trace_distance_list.append(sess.run(trace_distance(curr_rho, rho)))
+        property_mse_list.append(sess.run(property_mse(curr_rho, rho, "np")))
+        print("Property MSE:", property_mse_list[-1])
+        print("Trace distance:", trace_distance_list[-1])
+        
+        print('\nCost: {: .7f} −− Property: {:.7f}'.format(cost_list[-1], property_list[-1]))
+        params_list.append(sess.run(parameters))
+
+    return params_list, trace_distance_list, property_mse_list

@@ -108,6 +108,9 @@ if __name__ == '__main__':
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
+    if not os.path.exists(graph_dir):
+        os.makedirs(graph_dir)
+
     if args.type == 'discrete':
         import discrete_state_preparation as state_prep
     elif args.type == 'cv':
@@ -121,13 +124,29 @@ if __name__ == '__main__':
     rhos, properties = generate_density_matrices(n_samples, size_hilbert)
     plt.hist(properties)
     plt.xlabel(args.property.capitalize())
-    plt.ylabel("Proportion of density matrices")
+    plt.ylabel("Number of density matrices")
     plt.savefig(os.path.join(graph_dir, "distribution-property.png"))
-    plt.show()
+    np.save("distribution-property.npy", properties)
 
-    list_params = state_prep.prepare_states(rhos, args.property, n_qumodes, cutoff, n_iters_min, n_iters_max)
-        
-    np.save(os.path.join(data_dir, "list_params.npy"), list_params)
+    params_list, trace_distance_list, property_mse_list = state_prep.prepare_states(rhos, args.property, n_qumodes, cutoff, n_iters_min, n_iters_max)
+
+    plt.clf()
+    plt.hist(trace_distance_list)
+    plt.xlabel("Trace distance between the real and the prepared density matrices", labelpad=20)
+    plt.ylabel("Number of density matrices in the dataset")
+    plt.tight_layout()
+    plt.savefig(os.path.join(graph_dir, "trace-distance.png"))
+    np.save("trace-distance.npy", trace_distance_list)
+
+    plt.clf()
+    plt.hist(property_mse_list)
+    plt.xlabel("MSE between the {} of the real and the prepared density matrix".format(args.property), labelpad=20)
+    plt.ylabel("Number of density matrices in the dataset")
+    plt.tight_layout()
+    plt.savefig(os.path.join(graph_dir, "property-mse.png"))
+    np.save("property-mse.npy", property_mse_list)
+
+    np.save(os.path.join(data_dir, "params_list.npy"), params_list)
     np.save(os.path.join(data_dir, "rhos.npy"), rhos)
     np.save(os.path.join(data_dir, "properties.npy"), properties)
 

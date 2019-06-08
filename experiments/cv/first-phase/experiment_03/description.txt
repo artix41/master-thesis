@@ -1,5 +1,0 @@
-Post-selection
-n_samples_train = 150, n_samples_test = 50
-Batch size 16
-
-Analysis: impossible to learn anything without overfitting, but harder to overfit with more data => predict the mean

@@ -1,5 +1,8 @@
 # Quantum Polynomial Network (PolyNet)
-Learning quantum state properties (e.g. purity and entropy) with quantum neural networks
+
+Code developed for my master's thesis [Learning quantum state properties with quantum and classical neural networks](http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1320072&dswid=6511), supervised by [Peter Wittek](https://peterwittek.com/) at the University of Toronto.
+
+In this context, I considered and tested 3 quantum architectures to compute any property $f(\rho)$ of a quantum state $\rho$.
 
 ![](images/total-circuit.png)
 
